@@ -3,9 +3,8 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, TypedDict, Union, Sequence, List, Optional
+from typing import TYPE_CHECKING, TypedDict, Sequence
 
-from git import PathLike
 from git.objects.tag import TagObject
 
 from semantic_release.commit_parser import ParseError

@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import logging
 from queue import Queue
-from typing import TYPE_CHECKING, Iterable, Union, Sequence, List, Optional
-
-from git import PathLike
+from typing import TYPE_CHECKING, Iterable, Sequence
 
 from semantic_release.commit_parser import ParsedCommit
 from semantic_release.const import DEFAULT_VERSION
