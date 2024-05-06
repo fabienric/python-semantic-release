@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, TypedDict, Union, Sequence
+from typing import TYPE_CHECKING, TypedDict, Union, Sequence, List, Optional
 
 from git import PathLike
 from git.objects.tag import TagObject
@@ -37,7 +37,7 @@ class ReleaseHistory:
         translator: VersionTranslator,
         commit_parser: CommitParser[ParseResult, ParserOptions],
         exclude_commit_patterns: Iterable[Pattern[str]] = (),
-        commit_paths: Union[PathLike, Sequence[PathLike]] = "",
+        commit_paths: Sequence[str] = (),
     ) -> ReleaseHistory:
         all_git_tags_and_versions = tags_and_versions(repo.tags, translator)
         unreleased: dict[str, list[ParseResult]] = defaultdict(list)

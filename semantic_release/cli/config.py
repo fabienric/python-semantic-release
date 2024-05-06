@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, ClassVar, Dict, List, Literal, Optional, Tuple, Type, Union, Sequence
 
 from git import Actor, InvalidGitRepositoryError
 from git.repo.base import Repo
@@ -228,7 +228,7 @@ class RawConfig(BaseModel):
     publish: PublishConfig = PublishConfig()
     version_toml: Optional[Tuple[str, ...]] = None
     version_variables: Optional[Tuple[str, ...]] = None
-    commit_paths: Optional[List[str]] = None
+    commit_paths: Sequence[str] = ()
 
     @model_validator(mode="after")
     def set_default_opts(self) -> Self:
@@ -359,7 +359,7 @@ class RuntimeContext:
     # This way the filter can be passed around if needed, so that another function
     # can accept the filter as an argument and call
     masker: MaskingFilter
-    commit_paths: Optional[List[str]]
+    commit_paths: Sequence[str]
 
     @staticmethod
     def resolve_from_env(param: Optional[MaybeFromEnv]) -> Optional[str]:

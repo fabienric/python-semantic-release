@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from queue import Queue
-from typing import TYPE_CHECKING, Iterable, Union, Sequence
+from typing import TYPE_CHECKING, Iterable, Union, Sequence, List, Optional
 
 from git import PathLike
 
@@ -271,7 +271,7 @@ def next_version(
     prerelease: bool = False,
     major_on_zero: bool = True,
     allow_zero_version: bool = True,
-    commit_paths: Union[PathLike, Sequence[PathLike]] = "",
+    commit_paths: Sequence[str] = (),
 ) -> Version:
     """
     Evaluate the history within `repo`, and based on the tags and commits in the repo
