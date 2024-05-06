@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, Union, Sequence
 
+from git import PathLike
 from git.objects.tag import TagObject
 
 from semantic_release.commit_parser import ParseError
@@ -36,6 +37,7 @@ class ReleaseHistory:
         translator: VersionTranslator,
         commit_parser: CommitParser[ParseResult, ParserOptions],
         exclude_commit_patterns: Iterable[Pattern[str]] = (),
+        commit_paths: Union[PathLike, Sequence[PathLike]] = "",
     ) -> ReleaseHistory:
         all_git_tags_and_versions = tags_and_versions(repo.tags, translator)
         unreleased: dict[str, list[ParseResult]] = defaultdict(list)
@@ -54,7 +56,7 @@ class ReleaseHistory:
         is_commit_released = False
         the_version: Version | None = None
 
-        for commit in repo.iter_commits():
+        for commit in repo.iter_commits(paths=commit_paths):
             # mypy will be happy if we make this an explicit string
             commit_message = str(commit.message)
 

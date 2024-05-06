@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 from queue import Queue
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, Union, Sequence
+
+from git import PathLike
 
 from semantic_release.commit_parser import ParsedCommit
 from semantic_release.const import DEFAULT_VERSION
@@ -269,6 +271,7 @@ def next_version(
     prerelease: bool = False,
     major_on_zero: bool = True,
     allow_zero_version: bool = True,
+    commit_paths: Union[PathLike, Sequence[PathLike]] = "",
 ) -> Version:
     """
     Evaluate the history within `repo`, and based on the tags and commits in the repo
@@ -360,10 +363,11 @@ def next_version(
         latest_full_version_in_history,
     )
 
+    log.info(f"commit_paths: {commit_paths}")
     commits_since_last_full_release = (
-        repo.iter_commits()
+        repo.iter_commits(paths=commit_paths)
         if latest_full_version_in_history is None
-        else repo.iter_commits(f"{latest_full_version_in_history.as_tag()}...")
+        else repo.iter_commits(f"{latest_full_version_in_history.as_tag()}...", paths=commit_paths)
     )
 
     # Step 4. Parse each commit since the last release and find any tags that have

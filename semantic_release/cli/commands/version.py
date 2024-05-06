@@ -383,6 +383,7 @@ def version(  # noqa: C901
             prerelease=prerelease,
             major_on_zero=major_on_zero,
             allow_zero_version=runtime.allow_zero_version,
+            commit_paths=runtime.commit_paths,
         )
 
     if build_metadata:
@@ -434,6 +435,7 @@ def version(  # noqa: C901
         translator=translator,
         commit_parser=parser,
         exclude_commit_patterns=changelog_excluded_commit_patterns,
+        commit_paths=runtime.commit_paths,
     )
 
     commit_date = datetime.now()

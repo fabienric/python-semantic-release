@@ -54,6 +54,7 @@ def changelog(cli_ctx: CliContextObj, release_tag: str | None = None) -> None:
         translator=translator,
         commit_parser=parser,
         exclude_commit_patterns=changelog_excluded_commit_patterns,
+        commit_paths=runtime.commit_paths,
     )
     changelog_context = make_changelog_context(
         hvcs_client=hvcs_client, release_history=rh

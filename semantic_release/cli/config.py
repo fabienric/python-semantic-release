@@ -228,6 +228,7 @@ class RawConfig(BaseModel):
     publish: PublishConfig = PublishConfig()
     version_toml: Optional[Tuple[str, ...]] = None
     version_variables: Optional[Tuple[str, ...]] = None
+    commit_paths: Optional[List[str]] = None
 
     @model_validator(mode="after")
     def set_default_opts(self) -> Self:
@@ -358,6 +359,7 @@ class RuntimeContext:
     # This way the filter can be passed around if needed, so that another function
     # can accept the filter as an argument and call
     masker: MaskingFilter
+    commit_paths: Optional[List[str]]
 
     @staticmethod
     def resolve_from_env(param: Optional[MaybeFromEnv]) -> Optional[str]:
@@ -563,6 +565,7 @@ class RuntimeContext:
             upload_to_vcs_release=raw.publish.upload_to_vcs_release,
             global_cli_options=global_cli_options,
             masker=masker,
+            commit_paths=raw.commit_paths,
         )
         # credential masker
         self.apply_log_masking(self.masker)
