@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, TypedDict, Sequence
+from typing import TYPE_CHECKING, Sequence, TypedDict
 
 from git.objects.tag import TagObject
 

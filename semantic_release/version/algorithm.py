@@ -361,7 +361,9 @@ def next_version(
         latest_full_version_in_history,
     )
 
-    log.info(f"commit_paths: {commit_paths}")
+    if len(commit_paths) > 0:
+        log.info("Using commits in paths: %s", commit_paths)
+
     commits_since_last_full_release = (
         repo.iter_commits(paths=commit_paths)
         if latest_full_version_in_history is None
