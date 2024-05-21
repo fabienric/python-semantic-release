@@ -67,14 +67,14 @@ rest, as seen below.
 
 .. code-block:: toml
 
-    [tool.semantic_release.remote.token]
+    [semantic_release.remote.token]
     env = "GH_TOKEN"
 
 Given basic TOML syntax compatibility, this is equivalent to:
 
 .. code-block:: toml
 
-    [tool.semantic_release.remote]
+    [semantic_release.remote]
     token = { env = "GH_TOKEN" }
 
 The general format for specifying that some configuration should be sourced from an
@@ -82,7 +82,7 @@ environment variable is:
 
 .. code-block:: toml
 
-    [tool.semantic_release.<setting>]
+    [semantic_release.variable]
     env = "ENV_VAR"
     default_env = "FALLBACK_ENV_VAR"
     default = "default value"
@@ -95,24 +95,58 @@ In this structure:
     is not set. This is optional - if ``default`` is not specified then the environment variable
     specified by ``env`` is considered required.
 
-.. _config-settings:
+.. _config-root:
 
-Settings
---------
+``semantic_release`` settings
+-----------------------------
+
+The following sections outline all the definitions and descriptions of each supported
+configuration setting. If there are type mis-matches, PSR will throw validation errors upon load.
+If a setting is not provided, than PSR will fill in the value with the default value.
+
+Python Semantic Release expects a root level key to start the configuration definition. Make
+sure to use the correct root key dependending on the configuration format you are using.
+
+.. note:: If you are using ``pyproject.toml``, this heading should include the `tool`` prefix
+          as specified within PEP 517, resulting in ``[tool.semantic_release]``.
+
+.. note:: If you are using a ``releaserc.toml``, use ``[semantic_release]`` as the root key
+
+.. note:: If you are using a ``releaserc.json``, ``semantic_release`` must be the root key in the
+          top level dictionary.
 
 ----
 
-.. _config-root:
+.. _config-allow_zero_version:
 
-``[tool.semantic_release]``
-***************************
+``allow_zero_version``
+""""""""""""""""""""""
+
+**Type:** ``bool``
+
+This flag controls whether or not Python Semantic Release will use version
+numbers aligning with the ``0.x.x`` pattern.
+
+If set to ``true`` and starting at ``0.0.0``, a minor bump would set the
+next version as ``0.1.0`` whereas a patch bump would set the next version as
+``0.0.1``. A breaking change (ie. major bump) would set the next version as
+``1.0.0`` unless the :ref:`config-major_on_zero` is set to ``false``.
+
+If set to ``false``, Python Semantic Release will consider the first possible
+version to be ``1.0.0``, regardless of patch, minor, or major change level.
+Additionally, when ``allow_zero_version`` is set to ``false``,
+the :ref:`config-major_on_zero` setting is ignored.
+
+**Default:** ``true``
 
 ----
 
 .. _config-assets:
 
-``assets (List[str])``
-""""""""""""""""""""""
+``assets``
+""""""""""
+
+**Type:** ``list[str]``
 
 One or more paths to additional assets that should committed to the remote repository
 in addition to any files modified by writing the new version.
@@ -132,14 +166,14 @@ This setting is discussed in more detail at :ref:`multibranch-releases`
 
 .. code-block:: toml
 
-    [tool.semantic_release.branches.main]
+    [semantic_release.branches.main]
     match = "(main|master)"
     prerelease_token = "rc"
     prerelease = false
 
 ----
 
-.. _config-build-command:
+.. _config-build_command:
 
 ``build_command``
 """""""""""""""""
@@ -154,6 +188,9 @@ shell with a subset of environment variables. PSR provides the variable
 version. The following table summarizes all the environment variables that
 are passed on to the ``build_command`` runtime if they exist in the parent
 process.
+
+If you would like to pass additional environment variables to your build
+command, see :ref:`config-build_command_env`.
 
 ========================  ======================================================================
 Variable Name             Description
@@ -174,10 +211,324 @@ VIRTUAL_ENV               Pass-through ``VIRTUAL_ENV`` if exists in process env,
 
 ----
 
+.. _config-build_command_env:
+
+``build_command_env``
+"""""""""""""""""""""
+
+**Type:** ``Optional[list[str]]``
+
+List of environment variables to include or pass-through on to the build command that executes
+during :ref:`cmd-version`.
+
+This configuration option allows the user to extend the list of environment variables
+from the table above in :ref:`config-build_command`. The input is a list of strings
+where each individual string handles a single variable definition. There are two formats
+accepted and are detailed in the following table:
+
+==================  ===================================================================
+FORMAT              Description
+==================  ===================================================================
+``VAR_NAME``        Detects value from the PSR process environment, and passes value to
+                    ``build_command`` process
+
+``VAR_NAME=value``  Sets variable name to value inside of ``build_command`` process
+==================  ===================================================================
+
+.. note:: Although variable name capitalization is not required, it is recommended as
+          to be in-line with the POSIX-compliant recommendation for shell variable names.
+
+**Default:** ``None`` (not specified)
+
+----
+
+.. _config-changelog:
+
+``changelog``
+"""""""""""""
+
+This section outlines the configuration options available that modify changelog generation.
+
+.. note::
+    **pyproject.toml:** ``[tool.semantic_release.changelog]``
+
+    **releaserc.toml:** ``[semantic_release.changelog]``
+
+    **releaserc.json:** ``{ "semantic_release": { "changelog": {} } }``
+
+----
+
+.. _config-changelog-changelog_file:
+
+``changelog_file``
+******************
+
+**Type:** ``str``
+
+Specify the name of the changelog file (after template rendering has taken place).
+
+**Default:** ``"CHANGELOG.md"``
+
+----
+
+.. _config-changelog-environment:
+
+``environment``
+***************
+
+.. note::
+   This section of the configuration contains options which customize the template
+   environment used to render templates such as the changelog. Most options are
+   passed directly to the `jinja2.Environment`_ constructor, and further
+   documentation one these parameters can be found there.
+
+.. _`jinja2.Environment`: https://jinja.palletsprojects.com/en/3.1.x/api/#jinja2.Environment
+
+.. note::
+    **pyproject.toml:** ``[tool.semantic_release.changelog.environment]``
+
+    **releaserc.toml:** ``[semantic_release.changelog.environment]``
+
+    **releaserc.json:** ``{ "semantic_release": { "changelog": { "environment": {} } } }``
+
+----
+
+.. _config-changelog-environment-autoescape:
+
+``autoescape``
+''''''''''''''
+
+**Type:** ``Union[str, bool]``
+
+If this setting is a string, it should be given in ``module:attr`` form; Python
+Semantic Release will attempt to dynamically import this string, which should
+represent a path to a suitable callable that satisfies the following:
+
+    As of Jinja 2.4 this can also be a callable that is passed the template name
+    and has to return ``True`` or ``False`` depending on autoescape should be
+    enabled by default.
+
+The result of this dynamic import is passed directly to the `jinja2.Environment`_
+constructor.
+
+If this setting is a boolean, it is passed directly to the `jinja2.Environment`_
+constructor.
+
+**Default:** ``true``
+
+----
+
+.. _config-changelog-environment-block_start_string:
+
+``block_start_string``
+''''''''''''''''''''''
+
+**Type:** ``str``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``"{%"``
+
+----
+
+.. _config-changelog-environment-block_end_string:
+
+``block_end_string``
+''''''''''''''''''''
+
+**Type:** ``str``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``"%}"``
+
+----
+
+.. _config-changelog-environment-comment_start_string:
+
+``comment_start_string``
+''''''''''''''''''''''''
+
+**Type:** ``str``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``{#``
+
+----
+
+.. _config-changelog-environment-comment_end_string:
+
+``comment_end_string``
+''''''''''''''''''''''
+
+**Type:** ``str``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``"#}"``
+
+----
+
+.. _config-changelog-environment-extensions:
+
+``extensions``
+''''''''''''''
+
+**Type:** ``list[str]``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``[]``
+
+----
+
+.. _config-changelog-environment-keep_trailing_newline:
+
+``keep_trailing_newline``
+'''''''''''''''''''''''''
+
+**Type:** ``bool``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``false``
+
+----
+
+.. _config-changelog-environment-line_comment_prefix:
+
+``line_comment_prefix``
+'''''''''''''''''''''''
+
+**Type:** ``Optional[str]``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``None`` (not specified)
+
+----
+
+.. _config-changelog-environment-line_statement_prefix:
+
+``line_statement_prefix``
+'''''''''''''''''''''''''
+
+**Type:** ``Optional[str]``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``None`` (not specified)
+
+----
+
+.. _config-changelog-environment-lstrip_blocks:
+
+``lstrip_blocks``
+'''''''''''''''''
+
+**Type:** ``bool``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``false``
+
+----
+
+.. _config-changelog-environment-newline_sequence:
+
+``newline_sequence``
+''''''''''''''''''''
+
+**Type:** ``Literal["\n", "\r", "\r\n"]``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``"\n"``
+
+----
+
+.. _config-changelog-environment-trim_blocks:
+
+``trim_blocks``
+'''''''''''''''
+
+**Type:** ``bool``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``false``
+
+----
+
+.. _config-changelog-environment-variable_start_string:
+
+``variable_start_string``
+'''''''''''''''''''''''''
+
+**Type:** ``str``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``"{{"``
+
+----
+
+.. _config-changelog-environment-variable_end_string:
+
+``variable_end_string``
+'''''''''''''''''''''''
+
+**Type:** ``str``
+
+This setting is passed directly to the `jinja2.Environment`_ constructor.
+
+**Default:** ``"}}"``
+
+----
+
+.. _config-changelog-exclude_commit_patterns:
+
+``exclude_commit_patterns``
+***************************
+
+**Type:** ``list[str]``
+
+Any patterns specified here will be excluded from the commits which are available
+to your changelog. This allows, for example, automated commits to be removed if desired.
+Python Semantic Release also removes its own commits from the Changelog via this mechanism;
+therefore if you change the automated commit message that Python Semantic Release uses when
+making commits, you may wish to add the *old* commit message pattern here.
+
+The patterns in this list are treated as regular expressions.
+
+**Default:** ``[]``
+
+----
+
+.. _config-changelog-template_dir:
+
+``template_dir``
+****************
+
+**Type:** ``str``
+
+If given, specifies a directory of templates that will be rendered during creation
+of the changelog. If not given, the default changelog template will be used.
+
+This option is discussed in more detail at :ref:`changelog-templates`
+
+**Default:** ``"templates"``
+
+----
+
 .. _config-commit_author:
 
-``commit_author (str)``
-"""""""""""""""""""""""
+``commit_author``
+"""""""""""""""""
+
+**Type:** ``str``
+
 Author used in commits in the format ``name <email>``.
 
 .. note::
@@ -192,26 +543,30 @@ Author used in commits in the format ``name <email>``.
 
 ----
 
-.. _config-commit-message:
+.. _config-commit_message:
 
-``commit_message (str)``
-""""""""""""""""""""""""
+``commit_message``
+""""""""""""""""""
+
+**Type:** ``str``
 
 Commit message to use when making release commits. The message can use ``{version}``
 as a format key, in which case the version being released will be formatted into
 the message.
 
 If at some point in your project's lifetime you change this, you may wish to consider,
-adding the old message pattern(s) to :ref:`exclude_commit_patterns <config-changelog-exclude-commit-patterns>`.
+adding the old message pattern(s) to :ref:`exclude_commit_patterns <config-changelog-exclude_commit_patterns>`.
 
 **Default:** ``"{version}\n\nAutomatically generated by python-semantic-release"``
 
 ----
 
-.. _config-commit-parser:
+.. _config-commit_parser:
 
-``commit_parser (str)``
-"""""""""""""""""""""""
+``commit_parser``
+"""""""""""""""""
+
+**Type:** ``str``
 
 Specify which commit parser Python Semantic Release should use to parse the commits
 within the Git repository.
@@ -231,19 +586,21 @@ For more information see :ref:`commit-parsing`.
 
 ----
 
-.. _config-commit-parser-options:
+.. _config-commit_parser_options:
 
-``commit_parser_options (Dict[str, Any])``
-""""""""""""""""""""""""""""""""""""""""""
+``commit_parser_options``
+"""""""""""""""""""""""""
+
+**Type:** ``dict[str, Any]``
 
 These options are passed directly to the ``parser_options`` method of
-:ref:`the commit parser <config-commit-parser>`, without validation
+:ref:`the commit parser <config-commit_parser>`, without validation
 or transformation.
 
 For more information, see :ref:`commit-parsing-parser-options`.
 
 The default value for this setting depends on what you specify as
-:ref:`commit_parser <config-commit-parser>`. The table below outlines
+:ref:`commit_parser <config-commit_parser>`. The table below outlines
 the expections from ``commit_parser`` value to default options value.
 
 ==================  ==   =================================
@@ -251,7 +608,7 @@ the expections from ``commit_parser`` value to default options value.
 ==================  ==   =================================
 ``"angular"``       ->   .. code-block:: toml
 
-                             [tool.semantic_release.commit_parser_options]
+                             [semantic_release.commit_parser_options]
                              allowed_types = [
                                  "build", "chore", "ci", "docs", "feat", "fix",
                                  "perf", "style", "refactor", "test"
@@ -261,7 +618,7 @@ the expections from ``commit_parser`` value to default options value.
 
 ``"emoji"``         ->   .. code-block:: toml
 
-                             [tool.semantic_release.commit_parser_options]
+                             [semantic_release.commit_parser_options]
                              major_tags = [":boom:"]
                              minor_tags = [
                                  ":sparkles:", ":children_crossing:", ":lipstick:",
@@ -276,7 +633,7 @@ the expections from ``commit_parser`` value to default options value.
 
 ``"scipy"``         ->   .. code-block:: toml
 
-                             [tool.semantic_release.commit_parser_options]
+                             [semantic_release.commit_parser_options]
                              allowed_tags = [
                                 "API", "DEP", "ENH", "REV", "BUG", "MAINT", "BENCH",
                                 "BLD", "DEV", "DOC", "STY", "TST", "REL", "FEAT", "TEST",
@@ -287,7 +644,7 @@ the expections from ``commit_parser`` value to default options value.
 
 ``"tag"``           ->   .. code-block:: toml
 
-                             [tool.semantic_release.commit_parser_options]
+                             [semantic_release.commit_parser_options]
                              minor_tag = ":sparkles:"
                              patch_tag = ":nut_and_bolt:"
 
@@ -295,15 +652,16 @@ the expections from ``commit_parser`` value to default options value.
 ==================  ==   =================================
 
 **Default:** ``ParserOptions { ... }``, where ``...`` depends on
-:ref:`commit_parser <config-commit-parser>` as indicated above.
-
+:ref:`config-commit_parser` as indicated above.
 
 ----
 
-.. _config-logging-use-named-masks:
+.. _config-logging_use_named_masks:
 
-``logging_use_named_masks (bool)``
-""""""""""""""""""""""""""""""""""
+``logging_use_named_masks``
+"""""""""""""""""""""""""""
+
+**Type:** ``bool``
 
 Whether or not to replace secrets identified in logging messages with named masks
 identifying which secrets were replaced, or use a generic string to mask them.
@@ -312,32 +670,12 @@ identifying which secrets were replaced, or use a generic string to mask them.
 
 ----
 
-.. _config-allow-zero-version:
+.. _config-major_on_zero:
 
-``allow_zero_version (bool)``
-"""""""""""""""""""""""""""""
+``major_on_zero``
+"""""""""""""""""
 
-This flag controls whether or not Python Semantic Release will use version
-numbers aligning with the ``0.x.x`` pattern.
-
-If set to ``true`` and starting at ``0.0.0``, a minor bump would set the
-next version as ``0.1.0`` whereas a patch bump would set the next version as
-``0.0.1``. A breaking change (ie. major bump) would set the next version as
-``1.0.0`` unless the :ref:`major_on_zero` is set to ``false``.
-
-If set to ``false``, Python Semantic Release will consider the first possible
-version to be ``1.0.0``, regardless of patch, minor, or major change level.
-Additionally, when ``allow_zero_version`` is set to ``false``,
-the :ref:`major_on_zero` setting is ignored.
-
-**Default:** ``true``
-
-----
-
-.. _config-major-on-zero:
-
-``major_on_zero (bool)``
-""""""""""""""""""""""""
+**Type:** ``bool``
 
 This flag controls whether or not Python Semantic Release will increment the major
 version upon a breaking change when the version matches ``0.y.z``. This value is
@@ -358,312 +696,71 @@ From the `Semantic Versioning Specification`_:
 When you are ready to release a stable version, set ``major_on_zero`` to ``true`` and
 run Python Semantic Release again. This will increment the major version to ``1.0.0``.
 
-When :ref:`allow_zero_version` is set to ``false``, this setting is ignored.
+When :ref:`config-allow_zero_version` is set to ``false``, this setting is ignored.
 
 **Default:** ``true``
 
 ----
 
-.. _config-tag-format:
+.. _config-no_git_verify:
 
-``tag_format (str)``
-""""""""""""""""""""
+``no_git_verify``
+"""""""""""""""""
 
-Specify the format to be used for the Git tag that will be added to the repo during
-a release invoked via :ref:`cmd-version`. The format string is a regular expression,
-which also must include the format keys below, otherwise an exception will be thrown.
-It *may* include any of the optional format keys, in which case the contents
-described will be formatted into the specified location in the Git tag that is created.
+**Type:** ``bool``
 
-For example, ``"(dev|stg|prod)-v{version}"`` is a valid ``tag_format`` matching tags such
-as:
+This flag is passed along to ``git`` upon performing a ``git commit`` during :ref:`cmd-version`.
 
-- ``dev-v1.2.3``
-- ``stg-v0.1.0-rc.1``
-- ``prod-v2.0.0+20230701``
+When true, it will bypass any git hooks that are set for the repository when Python Semantic
+Release makes a version commit.  When false, the commit is performed as normal. This option
+has no effect when there are not any git hooks configured nor when the ``--no-commit`` option
+is passed.
 
-This format will also be used for parsing tags already present in the repository into
-semantic versions; therefore if the tag format changes at some point in the
-repository's history, historic versions that no longer match this pattern will not be
-considered as versions.
-
-================ =========  ========
-Format Key       Mandatory  Contents
-================ =========  ========
-``{version}``    Yes        The new semantic version number, for example ``1.2.3``, or
-                            ``2.1.0-alpha.1+build.1234``
-================ =========  ========
-
-Tags which do not match this format will not be considered as versions of your project.
-
-**Default:** ``"v{version}"``
+**Default:** ``false``
 
 ----
 
-.. _config-version-variables:
+.. _config-publish:
 
-``version_variables (List[str])``
-"""""""""""""""""""""""""""""""""
+``publish``
+"""""""""""
 
-Each entry represents a location where the version is stored in the source code,
-specified in ``file:variable`` format. For example:
-
-.. code-block:: toml
-
-    [tool.semantic_release]
-    version_variables = [
-        "semantic_release/__init__.py:__version__",
-        "docs/conf.py:version",
-    ]
-
-**Default:** ``[]``
-
-----
-
-.. _config-version-toml:
-
-``version_toml (List[str])``
-""""""""""""""""""""""""""""
-Similar to :ref:`config-version-variables`, but allows the version number to be
-identified safely in a toml file like ``pyproject.toml``, with each entry using
-dotted notation to indicate the key for which the value represents the version:
-
-.. code-block:: toml
-
-    [tool.semantic_release]
-    version_toml = [
-        "pyproject.toml:tool.poetry.version",
-    ]
-
-**Default:** ``[]``
-
-----
-
-.. _config-changelog:
-
-``[tool.semantic_release.changelog]``
-*************************************
-
-----
-
-.. _config-changelog-template-dir:
-
-``template_dir (str)``
-""""""""""""""""""""""
-
-If given, specifies a directory of templates that will be rendered during creation
-of the changelog. If not given, the default changelog template will be used.
-
-This option is discussed in more detail at :ref:`changelog-templates`
-
-**Default:** ``"templates"``
-
-----
-
-.. _config-changelog-changelog-file:
-
-``changelog_file (str)``
-""""""""""""""""""""""""
-
-Specify the name of the changelog file (after template rendering has taken place).
-
-**Default:** ``"CHANGELOG.md"``
-
-----
-
-.. _config-changelog-exclude-commit-patterns:
-
-``exclude_commit_patterns (List[str])``
-"""""""""""""""""""""""""""""""""""""""
-
-Any patterns specified here will be excluded from the commits which are available
-to your changelog. This allows, for example, automated commits to be removed if desired.
-Python Semantic Release also removes its own commits from the Changelog via this mechanism;
-therefore if you change the automated commit message that Python Semantic Release uses when
-making commits, you may wish to add the *old* commit message pattern here.
-
-The patterns in this list are treated as regular expressions.
-
-**Default:** ``[]``
-
-----
-
-.. _config-changelog-environment:
-
-``[tool.semantic_release.changelog.environment]``
-*************************************************
+This section defines configuration options that modify :ref:`cmd-publish`.
 
 .. note::
-   This section of the configuration contains options which customize the template
-   environment used to render templates such as the changelog. Most options are
-   passed directly to the `jinja2.Environment`_ constructor, and further
-   documentation one these parameters can be found there.
+    **pyproject.toml:** ``[tool.semantic_release.publish]``
 
-.. _`jinja2.Environment`: https://jinja.palletsprojects.com/en/3.1.x/api/#jinja2.Environment
+    **releaserc.toml:** ``[semantic_release.publish]``
 
-----
-
-.. _config-changelog-environment-block-start-string:
-
-``block_start_string (str)``
-""""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``"{%"``
+    **releaserc.json:** ``{ "semantic_release": { "publish": {} } }``
 
 ----
 
-.. _config-changelog-environment-block-end-string:
+.. _config-publish-dist_glob_patterns:
 
-``block_end_string (str)``
-""""""""""""""""""""""""""
+``dist_glob_patterns``
+**********************
 
-This setting is passed directly to the `jinja2.Environment`_ constructor.
+**Type:** ``list[str]``
 
-**Default:** ``"%}"``
+Upload any files matching any of these globs to your VCS release. Each item in this
+list should be a string containing a Unix-style glob pattern.
 
-----
-
-.. _config-changelog-environment-variable-start-string:
-
-``variable_start_string (str)``
-"""""""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``"{{"``
+**Default:** ``["dist/*"]``
 
 ----
 
-.. _config-changelog-environment-variable-end-string:
+.. _config-publish-upload_to_vcs_release:
 
-``variable_end_string (str)``
-"""""""""""""""""""""""""""""
+``upload_to_vcs_release``
+*************************
 
-This setting is passed directly to the `jinja2.Environment`_ constructor.
+**Type:** ``bool``
 
-**Default:** ``"}}"``
-
-----
-
-.. _config-changelog-environment-comment-start-string:
-
-``comment_start_string (str)``
-""""""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``{#``
-
-----
-
-.. _config-changelog-environment-comment-end-string:
-
-``comment_end_string (str)``
-""""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``"#}"``
-
-----
-
-.. _config-changelog-environment-line-statement-prefix:
-
-``line_statement_prefix (Optional[str])``
-"""""""""""""""""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``None`` (not specified)
-
-----
-
-.. _config-changelog-environment-line-comment-prefix:
-
-``line_comment_prefix (Optional[str])``
-"""""""""""""""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``None`` (not specified)
-
-----
-
-.. _config-changelog-environment-trim-blocks:
-
-``trim_blocks (bool)``
-""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``false``
-
-----
-
-.. _config-changelog-environment-lstrip-blocks:
-
-``lstrip_blocks (bool)``
-""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``false``
-
-----
-
-.. _config-changelog-environment-newline-sequence:
-
-``newline_sequence (Literal["\n", "\r", "\r\n"])``
-""""""""""""""""""""""""""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``"\n"``
-
-----
-
-.. _config-changelog-environment-keep-trailing-newline:
-
-``keep_trailing_newline (bool)``
-""""""""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``false``
-
-----
-
-.. _config-changelog-environment-extensions:
-
-``extensions (List[str])``
-""""""""""""""""""""""""""
-
-This setting is passed directly to the `jinja2.Environment`_ constructor.
-
-**Default:** ``[]``
-
-----
-
-.. _config-changelog-environment-autoescape:
-
-``autoescape (Union[str, bool])``
-""""""""""""""""""""""""""""""""""
-
-If this setting is a string, it should be given in ``module:attr`` form; Python
-Semantic Release will attempt to dynamically import this string, which should
-represent a path to a suitable callable that satisfies the following:
-
-    As of Jinja 2.4 this can also be a callable that is passed the template name
-    and has to return ``True`` or ``False`` depending on autoescape should be
-    enabled by default.
-
-The result of this dynamic import is passed directly to the `jinja2.Environment`_
-constructor.
-
-If this setting is a boolean, it is passed directly to the `jinja2.Environment`_
-constructor.
+If set to ``true``, upload any artifacts matched by the
+:ref:`dist_glob_patterns <config-publish-dist_glob_patterns>` to the release created
+in the remote VCS corresponding to the latest tag. Artifacts are only uploaded if
+release artifact uploads are supported by the :ref:`VCS type <config-remote-type>`.
 
 **Default:** ``true``
 
@@ -672,20 +769,24 @@ constructor.
 .. _config-remote:
 
 ``remote``
-**********
+""""""""""
+
+The remote configuration is a group of settings that configure PSR's integration
+with remote version control systems.
 
 .. note::
-    The remote configuration is a group of settings that configure PSR's integration
-    with remote version control systems.
-
     **pyproject.toml:** ``[tool.semantic_release.remote]``
+
+    **releaserc.toml:** ``[semantic_release.remote]``
+
+    **releaserc.json:** ``{ "semantic_release": { "remote": {} } }``
 
 ----
 
 .. _config-remote-api_domain:
 
 ``api_domain``
-""""""""""""""
+**************
 
 **Type:** ``Optional[str | Dict['env', str]]``
 
@@ -721,7 +822,7 @@ Secure ``HTTPS`` connections are assumed unless the setting of
 .. _config-remote-domain:
 
 ``domain``
-""""""""""
+**********
 
 **Type:** ``Optional[str | Dict['env', str]]``
 
@@ -749,14 +850,14 @@ variable when ``remote.domain`` is not specified.
 **Default:** ``None``
 
 .. seealso::
-   - :ref:`remote.api_domain <config-remote-api-domain>`
+   - :ref:`remote.api_domain <config-remote-api_domain>`
 
 ----
 
-.. _config-remote-ignore-token-for-push:
+.. _config-remote-ignore_token_for_push:
 
 ``ignore_token_for_push``
-"""""""""""""""""""""""""
+*************************
 
 **Type:** ``bool``
 
@@ -771,7 +872,7 @@ pushing.
 .. _config-remote-insecure:
 
 ``insecure``
-""""""""""""
+************
 
 **Type:** ``bool``
 
@@ -796,7 +897,7 @@ scheme off when desired.
 .. _config-remote-name:
 
 ``name``
-""""""""
+********
 
 **Type:** ``str``
 
@@ -806,45 +907,10 @@ Name of the remote to push to using ``git push -u $name <branch_name>``
 
 ----
 
-.. _config-remote-url:
-
-``url``
-"""""""
-
-**Type:** ``Optional[str | Dict['env', str]]``
-
-An override setting used to specify the remote upstream location of ``git push``.
-
-**Not commonly used!** This is used to override the derived upstream location when
-the desired push location is different than the location the repository was cloned
-from.
-
-This setting will override the upstream location url that would normally be derived
-from the :ref:`remote.name <config-remote-name>` location of your git repository.
-
-**Default:** ``None``
-
-----
-
-.. _config-remote-type:
-
-``type``
-""""""""
-
-**Type:** ``Literal["bitbucket", "gitea", "github", "gitlab"]``
-
-The type of the remote VCS. Currently, Python Semantic Release supports ``"github"``,
-``"gitlab"``, ``"gitea"`` and ``"bitbucket"``. Not all functionality is available with all
-remote types, but we welcome pull requests to help improve this!
-
-**Default:** ``"github"``
-
-----
-
 .. _config-remote-token:
 
 ``token``
-"""""""""
+*********
 
 **Type:** ``Optional[str | Dict['env', str]]``
 
@@ -885,33 +951,117 @@ default token value will be for each remote type.
 
 ----
 
-.. _config-publish:
+.. _config-remote-type:
 
-``[tool.semantic_release.publish]``
-***********************************
+``type``
+********
 
-----
+**Type:** ``Literal["bitbucket", "gitea", "github", "gitlab"]``
 
-.. _config-publish-dist-glob-patterns:
+The type of the remote VCS. Currently, Python Semantic Release supports ``"github"``,
+``"gitlab"``, ``"gitea"`` and ``"bitbucket"``. Not all functionality is available with all
+remote types, but we welcome pull requests to help improve this!
 
-``dist_glob_patterns (List[str])``
-""""""""""""""""""""""""""""""""""
-
-Upload any files matching any of these globs to your VCS release. Each item in this
-list should be a string containing a Unix-style glob pattern.
-
-**Default:** ``["dist/*"]``
+**Default:** ``"github"``
 
 ----
 
-.. _config-publish-upload-to-vcs-release:
+.. _config-remote-url:
 
-``upload_to_vcs_release (bool)``
-""""""""""""""""""""""""""""""""
+``url``
+*******
 
-If set to ``true``, upload any artifacts matched by the
-:ref:`dist_glob_patterns <config-publish-dist-glob-patterns>` to the release created
-in the remote VCS corresponding to the latest tag. Artifacts are only uploaded if
-release artifact uploads are supported by the :ref:`VCS type <config-remote-type>`.
+**Type:** ``Optional[str | Dict['env', str]]``
 
-**Default:** ``true``
+An override setting used to specify the remote upstream location of ``git push``.
+
+**Not commonly used!** This is used to override the derived upstream location when
+the desired push location is different than the location the repository was cloned
+from.
+
+This setting will override the upstream location url that would normally be derived
+from the :ref:`remote.name <config-remote-name>` location of your git repository.
+
+**Default:** ``None``
+
+----
+
+.. _config-tag_format:
+
+``tag_format``
+""""""""""""""
+
+**Type:** ``str``
+
+Specify the format to be used for the Git tag that will be added to the repo during
+a release invoked via :ref:`cmd-version`. The format string is a regular expression,
+which also must include the format keys below, otherwise an exception will be thrown.
+It *may* include any of the optional format keys, in which case the contents
+described will be formatted into the specified location in the Git tag that is created.
+
+For example, ``"(dev|stg|prod)-v{version}"`` is a valid ``tag_format`` matching tags such
+as:
+
+- ``dev-v1.2.3``
+- ``stg-v0.1.0-rc.1``
+- ``prod-v2.0.0+20230701``
+
+This format will also be used for parsing tags already present in the repository into
+semantic versions; therefore if the tag format changes at some point in the
+repository's history, historic versions that no longer match this pattern will not be
+considered as versions.
+
+================ =========  ==========================================================
+Format Key       Mandatory  Contents
+================ =========  ==========================================================
+``{version}``    Yes        The new semantic version number, for example ``1.2.3``, or
+                            ``2.1.0-alpha.1+build.1234``
+================ =========  ==========================================================
+
+Tags which do not match this format will not be considered as versions of your project.
+
+**Default:** ``"v{version}"``
+
+----
+
+.. _config-version_toml:
+
+``version_toml``
+""""""""""""""""
+
+**Type:** ``list[str]``
+
+Similar to :ref:`config-version_variables`, but allows the version number to be
+identified safely in a toml file like ``pyproject.toml``, with each entry using
+dotted notation to indicate the key for which the value represents the version:
+
+.. code-block:: toml
+
+    [semantic_release]
+    version_toml = [
+        "pyproject.toml:tool.poetry.version",
+    ]
+
+**Default:** ``[]``
+
+----
+
+.. _config-version_variables:
+
+``version_variables``
+"""""""""""""""""""""
+
+**Type:** ``list[str]``
+
+Each entry represents a location where the version is stored in the source code,
+specified in ``file:variable`` format. For example:
+
+.. code-block:: toml
+
+    [semantic_release]
+    version_variables = [
+        "semantic_release/__init__.py:__version__",
+        "docs/conf.py:version",
+    ]
+
+**Default:** ``[]``

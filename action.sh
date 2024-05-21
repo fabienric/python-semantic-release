@@ -50,6 +50,10 @@ if [ -n "$INPUT_BUILD_METADATA" ]; then
 	ARGS+=("--build-metadata $INPUT_BUILD_METADATA")
 fi
 
+if [ -n "$INPUT_PRERELEASE_TOKEN" ]; then
+	ARGS+=("--prerelease-token $INPUT_PRERELEASE_TOKEN")
+fi
+
 # Change to configured directory
 cd "${INPUT_DIRECTORY}"
 
@@ -59,6 +63,10 @@ if ! [ "${INPUT_GIT_COMMITTER_NAME:="-"}" = "-" ]; then
 fi
 if ! [ "${INPUT_GIT_COMMITTER_EMAIL:="-"}" = "-" ]; then
 	git config --global user.email "$INPUT_GIT_COMMITTER_EMAIL"
+fi
+if [ "${INPUT_GIT_COMMITTER_NAME:="-"}" != "-" ] && [ "${INPUT_GIT_COMMITTER_EMAIL:="-"}" != "-" ]; then
+	# Must export this value to the environment for PSR to consume the override
+	export GIT_COMMIT_AUTHOR="$INPUT_GIT_COMMITTER_NAME <$INPUT_GIT_COMMITTER_EMAIL>"
 fi
 
 # See https://github.com/actions/runner-images/issues/6775#issuecomment-1409268124

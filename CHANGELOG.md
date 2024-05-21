@@ -2,6 +2,45 @@
 
 
 
+## v9.7.3 (2024-05-15)
+
+### Fix
+
+* fix: enabled `prelease-token` parameter in github action (#929) ([`1bb26b0`](https://github.com/python-semantic-release/python-semantic-release/commit/1bb26b0762d94efd97c06a3f1b6b10fb76901f6d))
+
+
+## v9.7.2 (2024-05-13)
+
+### Documentation
+
+* docs(configuration): clarify TOC &amp; alphabetize configuration descriptions ([`19add16`](https://github.com/python-semantic-release/python-semantic-release/commit/19add16dcfdfdb812efafe2d492a933d0856df1d))
+
+* docs(configuration): clarify TOC &amp; standardize heading links ([`3a41995`](https://github.com/python-semantic-release/python-semantic-release/commit/3a4199542d0ea4dbf88fa35e11bec41d0c27dd17))
+
+### Fix
+
+* fix: enable user configuration of `build_command` env vars (#925)
+
+- test(version): add test of user defined env variables in build command
+
+  ref: #922
+
+- fix(version): enable user config of `build_command` env variables
+
+  Resolves: #922
+
+- docs(configuration): document `build_command_env` configuration option ([`6b5b271`](https://github.com/python-semantic-release/python-semantic-release/commit/6b5b271453874b982fbf2827ec1f6be6db1c2cc7))
+
+
+## v9.7.1 (2024-05-07)
+
+### Fix
+
+* fix(gha): fix missing `git_committer_*` definition in action (#919)
+
+  Resolves: #918 ([`ccef9d8`](https://github.com/python-semantic-release/python-semantic-release/commit/ccef9d8521be12c0640369b3c3a80b81a7832662))
+
+
 ## v9.7.0 (2024-05-06)
 
 ### Documentation
